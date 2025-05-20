@@ -1,0 +1,79 @@
+const asyncHandler = require('express-async-handler');
+const Contact = require('../../models/contacts/contactModel');
+
+const getContacts = asyncHandler (async (req, res) => {
+    const allContacts = await Contact.find({user_id: req.user.id});
+    res.status(200).json(allContacts);
+});
+
+const createContact = asyncHandler (async (req, res) => {
+    console.log('The request body',req.body);
+    const {name, email, phone} = req.body;
+    if(!name || !email || !phone) {
+         res.status(400);
+         throw new Error("Please provide name, email and phone");         
+    }     
+    Contact.create({
+        user_id: req.user.id,
+        name,
+        email,
+        phone
+    }).then((contactDetails) => {
+        res.status(201).json(contactDetails);
+    }).catch((error) => {
+        res.status(400);
+        throw new Error("Contact not created");
+    });   
+});
+
+const getContact = asyncHandler( async (req, res) => {
+    const contactID = req.params.id;    
+    const contactDetailObj = await Contact.findById(contactID);
+    if(!contactDetailObj){
+        res.status(404);
+        throw new Error("Contact not found");
+    }    
+    res.status(200).json(contactDetailObj);
+});
+
+const updateContact = asyncHandler( async (req, res) => {
+    const contactID = req.params.id;    
+    const contactDetailObj = await Contact.findById(contactID);
+    if(!contactDetailObj){
+        res.status(404);
+        throw new Error("Contact not found");
+    } 
+    
+    if(contactDetailObj.user_id.toString() !== req.user.id){
+        res.status(401);
+        throw new Error("User not authorized to update this contact");
+    }
+    
+    await Contact.findByIdAndUpdate(contactID, req.body, {new: true}).then((contactDetails) => {
+        res.status(200).json(contactDetails);
+    }).catch((error) => {
+        res.status(400);
+        throw new Error("Contact not updated");
+    });    
+});
+
+const deleteContact = asyncHandler( async (req, res) => {
+    const contactID = req.params.id;    
+    const contactDetailObj = await Contact.findById(contactID);
+    if(!contactDetailObj){
+        res.status(404);
+        throw new Error("Contact not found");
+    } 
+    if(contactDetailObj.user_id.toString() !== req.user.id){
+        res.status(401);
+        throw new Error("User not authorized to delete this contact");
+    }
+    await Contact.deleteOne(contactDetailObj).then(() => {
+        res.status(200).json({ message: `Contact with id ${contactID} deleted successfully`});
+    }).catch((error) => {
+        res.status(400);
+        throw new Error("Contact not deleted");
+    });     
+});
+
+module.exports = {getContacts, getContact, updateContact, createContact, deleteContact};

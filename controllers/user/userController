@@ -1,0 +1,130 @@
+const asyncHandler = require("express-async-handler");
+const User = require('../../models/user/userModel');  
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+const {UserRole} = require("../../constants");
+const employeeProfile = require('../../models/employee/employeeModel');
+const employerProfile = require('../../models/employer/employerModel');     
+
+const registerUser = asyncHandler(async (req, res) => {
+    const { name, email, password, role, phone} = req.body;
+    if (!email || !password || !role) {
+        res.status(400);
+        throw new Error("Please provide name, email and password");
+    }
+    // Check if user already exists 
+    const userDetails  = await User.findOne({ email });                                                                   
+    if (userDetails && userDetails.id) {        
+        res.status(400);
+        throw new Error("User already exists");
+    }
+    // Create user
+    const hashedPassword = await bcrypt.hash(password,10);
+    const user = await User.create({
+        name,
+        email,
+        password: hashedPassword,
+        role,
+    });
+    if (user) {
+        if(user.role === UserRole.EMPLOYEE) {            
+            await employeeProfile.create({ 
+                     user_id: user.id,       
+                     name,
+                     email,
+                     phone,                     
+                 }).then((employeeDetails) => {  
+                user.default_profile_id = employeeDetails.id;
+                user.save();                   
+                 res.status(201).json({
+                        id: user.id,
+                        name: user.name,
+                        email: user.email,
+                        role: user.role,
+                        phone,
+                        default_profile_id: employeeDetails.id,
+                    }); 
+                 }).catch((error) => {
+                res.status(400);
+                console.log(error);
+                throw new Error("Employee not created");
+            }); 
+        }else if(user.role === UserRole.EMPLOYER) {
+            let companyName = req.body.companyName;
+           await employerProfile.create({ 
+                user_id: user.id,       
+                companyName,
+                email,
+                phone,                     
+            }).then((employerDetails) => {
+                user.default_profile_id = employerDetails.id;
+                user.save(); 
+                res.status(201).json({
+                    id: user.id,
+                    companyName,
+                    email: user.email,
+                    role: user.role,
+                    phone,
+                    default_profile_id: employerDetails.id,
+                }); 
+            }).catch((error) => {
+                res.status(400);
+                console.log(error);
+                throw new Error("Employer not created");
+            }); 
+        } else {
+            res.status(400);
+            throw new Error("Invalid role");
+        }
+        
+    } else {
+        res.status(400);
+        throw new Error("Invalid user data");
+    }      
+});
+
+const loginUser = asyncHandler(async (req, res) => {
+    const { email, password } = req.body;
+    if (!email || !password) {
+        res.status(400);
+        throw new Error("Please provide email and password");
+    }
+    // Check if user exists    
+    const userDetails = await User.findOne({email});
+    if (!userDetails) {
+        res.status(400);
+        throw new Error("User not found");
+    }
+    // Check if password is correct     
+    const isPasswordCorrect = await bcrypt.compare(password, userDetails.password);
+
+    if (!isPasswordCorrect) {
+        res.status(400);
+        throw new Error("Invalid credentials");
+    }   
+
+    // Generate JWT token           
+    const token = jwt.sign( {
+        User: {
+            id: userDetails._id,
+            email: userDetails.email,
+            name: userDetails.name,     
+            },
+        },
+        process.env.JWT_SECRET,
+        { expiresIn: "30d" }
+    );   
+    res.status(200).json({ token });
+});
+
+const getCurrentUser = asyncHandler(async (req, res) => {
+    //const {user}
+    const userDetails = req.user;   
+    res.status(200).json(userDetails);
+}); 
+
+module.exports = {
+    registerUser,
+    loginUser,
+    getCurrentUser
+};
