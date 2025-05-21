@@ -1,127 +1,142 @@
 const asyncHandler = require("express-async-handler");
-const User = require('../../models/user/userModel');  
+const User = require('../../models/user/userModel');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const {UserRole} = require("../../constants");
+const { UserRole } = require("../../constants");
 const employeeProfile = require('../../models/employee/employeeModel');
-const employerProfile = require('../../models/employer/employerModel');     
+const employerProfile = require('../../models/employer/employerModel');
 
+// Helper functions
+const generateToken = (userDetails) => {
+    return jwt.sign(
+        {
+            User: {
+                id: userDetails._id,
+                email: userDetails.email,
+                name: userDetails.name,
+            },
+        },
+        process.env.JWT_SECRET,
+        { expiresIn: "30d" }
+    );
+};
+
+const createEmployeeProfile = async (user, userData) => {
+    const employeeDetails = await employeeProfile.create({
+        user_id: user.id,
+        name: userData.name,
+        email: userData.email,
+        phone: userData.phone,
+    });
+    
+    user.default_profile_id = employeeDetails.id;
+    await user.save();
+    
+    return {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        phone: userData.phone,
+        default_profile_id: employeeDetails.id,
+    };
+};
+
+const createEmployerProfile = async (user, userData) => {
+    const employerDetails = await employerProfile.create({
+        user_id: user.id,
+        companyName: userData.companyName,
+        email: userData.email,
+        phone: userData.phone,
+    });
+    
+    user.default_profile_id = employerDetails.id;
+    await user.save();
+    
+    return {
+        id: user.id,
+        companyName: userData.companyName,
+        email: user.email,
+        role: user.role,
+        phone: userData.phone,
+        default_profile_id: employerDetails.id,
+    };
+};
+
+// Controller functions
 const registerUser = asyncHandler(async (req, res) => {
-    const { name, email, password, role, phone} = req.body;
+    const { name, email, password, role, phone, companyName } = req.body;
+
     if (!email || !password || !role) {
         res.status(400);
         throw new Error("Please provide name, email and password");
     }
-    // Check if user already exists 
-    const userDetails  = await User.findOne({ email });                                                                   
-    if (userDetails && userDetails.id) {        
+
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
         res.status(400);
         throw new Error("User already exists");
     }
-    // Create user
-    const hashedPassword = await bcrypt.hash(password,10);
+
+    const hashedPassword = await bcrypt.hash(password, 10);
     const user = await User.create({
         name,
         email,
         password: hashedPassword,
         role,
     });
-    if (user) {
-        if(user.role === UserRole.EMPLOYEE) {            
-            await employeeProfile.create({ 
-                     user_id: user.id,       
-                     name,
-                     email,
-                     phone,                     
-                 }).then((employeeDetails) => {  
-                user.default_profile_id = employeeDetails.id;
-                user.save();                   
-                 res.status(201).json({
-                        id: user.id,
-                        name: user.name,
-                        email: user.email,
-                        role: user.role,
-                        phone,
-                        default_profile_id: employeeDetails.id,
-                    }); 
-                 }).catch((error) => {
-                res.status(400);
-                console.log(error);
-                throw new Error("Employee not created");
-            }); 
-        }else if(user.role === UserRole.EMPLOYER) {
-            let companyName = req.body.companyName;
-           await employerProfile.create({ 
-                user_id: user.id,       
-                companyName,
-                email,
-                phone,                     
-            }).then((employerDetails) => {
-                user.default_profile_id = employerDetails.id;
-                user.save(); 
-                res.status(201).json({
-                    id: user.id,
-                    companyName,
-                    email: user.email,
-                    role: user.role,
-                    phone,
-                    default_profile_id: employerDetails.id,
-                }); 
-            }).catch((error) => {
-                res.status(400);
-                console.log(error);
-                throw new Error("Employer not created");
-            }); 
+
+    if (!user) {
+        res.status(400);
+        throw new Error("Invalid user data");
+    }
+
+    try {
+        let response;
+        if (user.role === UserRole.EMPLOYEE) {
+            response = await createEmployeeProfile(user, { name, email, phone });
+        } else if (user.role === UserRole.EMPLOYER) {
+            response = await createEmployerProfile(user, { email, phone, companyName });
         } else {
             res.status(400);
             throw new Error("Invalid role");
         }
         
-    } else {
+        res.status(201).json(response);
+    } catch (error) {
         res.status(400);
-        throw new Error("Invalid user data");
-    }      
+        console.error(error);
+        throw new Error(`${user.role} profile not created`);
+    }
 });
 
 const loginUser = asyncHandler(async (req, res) => {
     const { email, password } = req.body;
+
     if (!email || !password) {
         res.status(400);
         throw new Error("Please provide email and password");
     }
-    // Check if user exists    
-    const userDetails = await User.findOne({email});
+
+    const userDetails = await User.findOne({ email });
     if (!userDetails) {
         res.status(400);
         throw new Error("User not found");
     }
-    // Check if password is correct     
-    const isPasswordCorrect = await bcrypt.compare(password, userDetails.password);
 
+    const isPasswordCorrect = await bcrypt.compare(password, userDetails.password);
     if (!isPasswordCorrect) {
         res.status(400);
         throw new Error("Invalid credentials");
-    }   
+    }
 
-    // Generate JWT token           
-    const token = jwt.sign( {
-        User: {
-            id: userDetails._id,
-            email: userDetails.email,
-            name: userDetails.name,     
-            },
-        },
-        process.env.JWT_SECRET,
-        { expiresIn: "30d" }
-    );   
+    const token = generateToken(userDetails);
     res.status(200).json({ token });
 });
 
 const getCurrentUser = asyncHandler(async (req, res) => {
-    //const {user}
-    const userDetails = req.user;   
-    res.status(200).json(userDetails);
-}); 
+    res.status(200).json(req.user);
+});
 
 module.exports = {
     registerUser,

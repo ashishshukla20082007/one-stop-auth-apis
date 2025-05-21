@@ -1,5 +1,5 @@
 {
-  "name": "job-portal-user-services",
+  "name": "one-stop-user-apis",
   "version": "1.0.0",
   "description": "This is backend api to manage user  contacts.",
   "main": "server.js",
