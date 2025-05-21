@@ -17,6 +17,6 @@ exports.JobType = {
 
 exports.UserRole = {
   EMPLOYER: 'Employer',
-  EMPLOYEE: 'Employee',
+  CANDIDATE: 'Candidate',
   ADMIN: 'Admin'
 };

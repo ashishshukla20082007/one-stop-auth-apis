@@ -3,7 +3,7 @@ const User = require('../../models/user/userModel');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { UserRole } = require("../../constants");
-const employeeProfile = require('../../models/employee/employeeModel');
+const candidateProfile = require('../../models/candidate/candidateModel');
 const employerProfile = require('../../models/employer/employerModel');
 
 // Helper functions
@@ -21,15 +21,15 @@ const generateToken = (userDetails) => {
     );
 };
 
-const createEmployeeProfile = async (user, userData) => {
-    const employeeDetails = await employeeProfile.create({
+const createCandidateProfile = async (user, userData) => {
+    const candidateDetails = await candidateProfile.create({
         user_id: user.id,
         name: userData.name,
         email: userData.email,
         phone: userData.phone,
     });
     
-    user.default_profile_id = employeeDetails.id;
+    user.default_profile_id = candidateDetails.id;
     await user.save();
     
     return {
@@ -38,7 +38,7 @@ const createEmployeeProfile = async (user, userData) => {
         email: user.email,
         role: user.role,
         phone: userData.phone,
-        default_profile_id: employeeDetails.id,
+        default_profile_id: candidateDetails.id,
     };
 };
 
@@ -93,8 +93,8 @@ const registerUser = asyncHandler(async (req, res) => {
 
     try {
         let response;
-        if (user.role === UserRole.EMPLOYEE) {
-            response = await createEmployeeProfile(user, { name, email, phone });
+        if (user.role === UserRole.CANDIDATE) {
+            response = await createCandidateProfile(user, { name, email, phone });
         } else if (user.role === UserRole.EMPLOYER) {
             response = await createEmployerProfile(user, { email, phone, companyName });
         } else {

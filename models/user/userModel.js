@@ -17,7 +17,7 @@ const userSchema = new mongoose.Schema({
         type: String,
         enum: Object.values(UserRole),
         required: [true, 'Please provide the role.'],
-        default: "employee",                
+        default: "Candidate",                
     },
     default_profile_id: String,
     resetToken: String,

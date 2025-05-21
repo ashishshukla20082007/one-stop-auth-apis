@@ -1,0 +1,95 @@
+const asyncHandler = require('express-async-handler');
+const candidateProfile = require('../../models/candidate/candidateModel');
+
+const getCandidates = asyncHandler (async (req, res) => {
+    const allCandidates = await candidateProfile.find({user_id: req.user.id});
+    if(allCandidates){  
+    res.status(200).json(allCandidates);
+    }else{
+        res.status(404);
+        throw new Error("No candidates found");
+    }
+ });
+
+const createCandidate = asyncHandler (async (req, res) => {
+    console.log('The request body',req.body);
+    const {name, email, phone, skills, experience, education, jobPreferences, projects} = req.body;
+    if(!name || !email || !phone) {
+         res.status(400);
+         throw new Error("Please provide name, email and phone");         
+    }     
+    candidateProfile.create({ 
+        user_id: req.user.id,       
+        name,
+        email,
+        phone,
+        skills,
+        experience,        
+        education,
+        projects,
+        jobPreferences,
+    }).then((candidateDetails) => {
+        res.status(201).json(candidateDetails);
+    }).catch((error) => {
+        res.status(400);
+        console.log(error);
+        throw new Error("Candidate not created");
+    });   
+});
+
+const getCandidate = asyncHandler( async (req, res) => {
+    const candidateID = req.params.id;    
+    const candidateDetailObj = await candidateProfile.findById(candidateID);
+    if(!candidateDetailObj){
+        res.status(404);
+        throw new Error("Candidate not found");
+    }  
+
+    if(candidateDetailObj.user_id.toString() !== req.user.id){
+        res.status(401);
+        throw new Error("User not authorized to update this contact");
+    }  
+    res.status(200).json(candidateDetailObj);
+});
+
+const updateCandidate = asyncHandler( async (req, res) => {
+    const candidateID = req.params.id;    
+    const candidateDetailObj = await candidateProfile.findById(candidateID);
+    if(!candidateDetailObj){
+        res.status(404);
+        throw new Error("Candidate not found");
+    } 
+    
+    if(candidateDetailObj.user_id.toString() !== req.user.id){
+        res.status(401);
+        throw new Error("User not authorized to update this contact");
+    }
+    
+    await candidateProfile.findByIdAndUpdate(candidateID, req.body, {new: true}).then((candidateDetails) => {
+        res.status(200).json(candidateDetails);
+    }).catch((error) => {
+        res.status(400);
+        throw new Error("Candidate not updated");
+    });    
+});
+
+const deleteCandidate = asyncHandler( async (req, res) => {
+    const candidateID = req.params.id;    
+    const candidateDetailObj = await candidateProfile.findById(candidateID);
+    if(!candidateDetailObj){
+        res.status(404);
+        throw new Error("Candidate not found");
+    } 
+    if(candidateDetailObj.user_id.toString() !== req.user.id){
+        res.status(401);
+        throw new Error("User not authorized to delete this Candidate");
+    }
+    await candidateProfile.deleteOne(candidateDetailObj).then(() => {
+        res.status(200).json({ message: `Candidate with id ${candidateID} deleted successfully`});
+    }).catch((error) => {
+        res.status(400);
+        throw new Error("Candidate not deleted");
+    });     
+});
+
+module.exports = {getCandidates, getCandidate, updateCandidate, createCandidate, deleteCandidate};

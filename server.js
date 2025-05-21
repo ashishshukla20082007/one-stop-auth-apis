@@ -3,7 +3,7 @@ const errorHandler = require('./middleware/errorHandler');
 const dotenv = require('dotenv').config();
 const connectDB = require('./config/dbConnection');
 const userRoutes = require('./routes/user/userRoutes');
-const employeeRoutes = require('./routes/employee/employeeRoutes');     
+const candidateRoutes = require('./routes/candidate/candidateRoutes');     
 const employerRoutes = require('./routes/employer/employerRoutes');
 const contactRoutes = require('./routes/contacts/contactRoutes');
 
@@ -17,7 +17,7 @@ connectDB(); // Connect to MongoDB
 app.use(express.json());
 app.use('/api/contacts', contactRoutes);
 app.use('/api/v1/auth', userRoutes);
-app.use('/api/v1/employees', employeeRoutes);
+app.use('/api/v1/candidates', candidateRoutes);
 app.use('/api/v1/employers', employerRoutes);  
 
 app.use(errorHandler);

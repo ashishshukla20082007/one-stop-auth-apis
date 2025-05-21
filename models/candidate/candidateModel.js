@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 const {JobType} = require("../../constants");
 
-const employeeProfileSchema = new mongoose.Schema({
+const candidateProfileSchema = new mongoose.Schema({
   user_id: {
       type: mongoose.Schema.Types.ObjectId,      
       ref: 'User',
@@ -47,4 +47,4 @@ const employeeProfileSchema = new mongoose.Schema({
   }
 }, { timestamps: true });
 
-module.exports = mongoose.model('EmployeeProfile', employeeProfileSchema);
+module.exports = mongoose.model('CandidateProfile', candidateProfileSchema);
