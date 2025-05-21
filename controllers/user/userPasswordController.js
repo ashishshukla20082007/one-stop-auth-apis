@@ -2,7 +2,7 @@ const asyncHandler = require("express-async-handler");
 const User = require('../../models/user/userModel');  
 const bcrypt = require('bcrypt');
 const crypto = require('crypto');
-const nodemailer = require('nodemailer');
+const { sendMail } = require('../../services/mailService');
 
 const userForgotPassword = asyncHandler(async (req, res) => {
     const { email } = req.body;
@@ -25,21 +25,14 @@ const userForgotPassword = asyncHandler(async (req, res) => {
       const resetLink = `http://localhost:5001/api/v1/auth/reset-password/${encodeURIComponent(rawToken)}`;
       console.log(resetLink);
   
-      // 5. Send email
-      const transporter =  nodemailer.createTransport({
-        service: 'Gmail',
-        auth: {
-          user: process.env.GMAIL_TRANSPORTER_USER,
-          pass: process.env.GMAIL_TRANSPORTER_PASSWORD,
-        }
-      });
-  
-      await transporter.sendMail({
+      // 5. Send email 
+        await sendMail({
+        from: '"Dev" <no‑reply@localhost>',
         to: user.email,
-        subject: 'Password Reset',
+        subject: 'Password Reset',       
         html: `<p>Click <a href="${resetLink}">here</a> to reset your password. The link is valid for 1 hour.</p>`
-      });
-
+      })
+      
       res.status(200).json({ message: 'Password reset email sent' });
 
     } catch (error) {
