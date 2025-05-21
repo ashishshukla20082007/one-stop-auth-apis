@@ -20,6 +20,8 @@ const userSchema = new mongoose.Schema({
         default: "employee",                
     },
     default_profile_id: String,
+    resetToken: String,
+    resetTokenExpiry: Date,
 }, {
     timestamps: true,
 }); 
