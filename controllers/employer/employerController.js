@@ -63,13 +63,13 @@ const updateEmployer = asyncHandler( async (req, res) => {
         res.status(401);
         throw new Error("User not authorized to update this contact");
     }
-    
-    await employerProfile.findByIdAndUpdate(employerID, req.body, {new: true}).then((employerDetails) => {
+    try{
+        const employerDetails = await employerProfile.findByIdAndUpdate(employerID, req.body, {new: true});
         res.status(200).json(employerDetails);
-    }).catch((error) => {
+    }catch(error){
         res.status(400);
         throw new Error("Employer not updated");
-    });    
+    } 
 });
 
 const deleteEmployer = asyncHandler( async (req, res) => {
@@ -83,12 +83,13 @@ const deleteEmployer = asyncHandler( async (req, res) => {
         res.status(401);
         throw new Error("User not authorized to delete this Employer");
     }
-    await employerProfile.deleteOne(employerDetailObj).then(() => {
+    try{
+        const employerDetails = await employerProfile.deleteOne(employerDetailObj);
         res.status(200).json({ message: `Employer with id ${employerID} deleted successfully`});
-    }).catch((error) => {
+    }catch(error){
         res.status(400);
         throw new Error("Employer not deleted");
-    });     
+    } 
 });
 
 module.exports = {getEmployers, getEmployer, updateEmployer, createEmployer, deleteEmployer};

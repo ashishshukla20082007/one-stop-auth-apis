@@ -11,30 +11,38 @@ const getCandidates = asyncHandler (async (req, res) => {
     }
  });
 
-const createCandidate = asyncHandler (async (req, res) => {
-    console.log('The request body',req.body);
-    const {name, email, phone, skills, experience, education, jobPreferences, projects} = req.body;
-    if(!name || !email || !phone) {
-         res.status(400);
-         throw new Error("Please provide name, email and phone");         
-    }     
-    candidateProfile.create({ 
-        user_id: req.user.id,       
-        name,
-        email,
-        phone,
-        skills,
-        experience,        
-        education,
-        projects,
-        jobPreferences,
-    }).then((candidateDetails) => {
-        res.status(201).json(candidateDetails);
-    }).catch((error) => {
+const createCandidate = asyncHandler(async (req, res) => {
+    console.log('The request body', req.body);
+    const { name, email, phone, skills, experience, education, jobPreferences, projects } = req.body;
+    
+    if (!name || !email || !phone) {
         res.status(400);
-        console.log(error);
+        throw new Error("Please provide name, email and phone");
+    }
+
+    const existing = await candidateProfile.findOne({ email });
+    if (existing) {
+       res.status(400);
+        throw new Error("Candidate profile already exists.");
+    }
+    
+    try {
+        const candidateDetails = await candidateProfile.create({
+            user_id: req.user.id,
+            name,
+            email,
+            phone,
+            skills,
+            experience,
+            education,
+            projects,
+            jobPreferences,
+        });
+        res.status(201).json(candidateDetails);
+    } catch (error) {
+        res.status(400);
         throw new Error("Candidate not created");
-    });   
+    }
 });
 
 const getCandidate = asyncHandler( async (req, res) => {
@@ -64,13 +72,14 @@ const updateCandidate = asyncHandler( async (req, res) => {
         res.status(401);
         throw new Error("User not authorized to update this contact");
     }
-    
-    await candidateProfile.findByIdAndUpdate(candidateID, req.body, {new: true}).then((candidateDetails) => {
+
+    try{    
+        const candidateDetails = await candidateProfile.findByIdAndUpdate(candidateID, req.body, {new: true});
         res.status(200).json(candidateDetails);
-    }).catch((error) => {
+    }catch(error){
         res.status(400);
         throw new Error("Candidate not updated");
-    });    
+    }       
 });
 
 const deleteCandidate = asyncHandler( async (req, res) => {
@@ -84,12 +93,14 @@ const deleteCandidate = asyncHandler( async (req, res) => {
         res.status(401);
         throw new Error("User not authorized to delete this Candidate");
     }
-    await candidateProfile.deleteOne(candidateDetailObj).then(() => {
+
+    try{
+        const candidateDetails = await candidateProfile.deleteOne(candidateDetailObj);
         res.status(200).json({ message: `Candidate with id ${candidateID} deleted successfully`});
-    }).catch((error) => {
+    }catch(error){
         res.status(400);
         throw new Error("Candidate not deleted");
-    });     
+    } 
 });
 
 module.exports = {getCandidates, getCandidate, updateCandidate, createCandidate, deleteCandidate};
