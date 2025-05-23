@@ -7,7 +7,6 @@ const candidateRoutes = require('./routes/candidate/candidateRoutes');
 const employerRoutes = require('./routes/employer/employerRoutes');
 const contactRoutes = require('./routes/contacts/contactRoutes');
 
-
 const app = express();
 
 const port = process.env.PORT || 5000;

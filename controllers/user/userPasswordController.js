@@ -2,7 +2,7 @@ const asyncHandler = require("express-async-handler");
 const User = require('../../models/user/userModel');  
 const bcrypt = require('bcrypt');
 const crypto = require('crypto');
-const { sendMail } = require('../../services/mailService');
+const axios = require('axios');
 
 const userForgotPassword = asyncHandler(async (req, res) => {
     const { email } = req.body;
@@ -23,15 +23,14 @@ const userForgotPassword = asyncHandler(async (req, res) => {
   
       // 4. Send raw token (not hashed) in reset link
       const resetLink = `http://localhost:5001/api/v1/auth/reset-password/${encodeURIComponent(rawToken)}`;
-      console.log(resetLink);
-  
-      // 5. Send email 
-        await sendMail({
-        from: '"Dev" <no‑reply@localhost>',
+      
+      // 5. Send notification through notification service
+      await axios.post('http://localhost:5002/notify/email', {
+        userId: user._id,
         to: user.email,
-        subject: 'Password Reset',       
-        html: `<p>Click <a href="${resetLink}">here</a> to reset your password. The link is valid for 1 hour.</p>`
-      })
+        subject: 'Password Reset',
+        text: `<p>Click <a href="${resetLink}">here</a> to reset your password. The link is valid for 1 hour.</p>`
+      });
       
       res.status(200).json({ message: 'Password reset email sent' });
 

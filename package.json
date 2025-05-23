@@ -1,16 +1,17 @@
 {
-  "name": "one-stop-user-apis",
+  "name": "one-stop-auth-apis",
   "version": "1.0.0",
-  "description": "This is backend api to manage user  contacts.",
+  "description": "This is backend api to manage user authentication.",
   "main": "server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node server.js",
     "dev": "nodemon server.js"
   },
-  "author": "Talent Cabin",
+  "author": "One Stop",
   "license": "ISC",
   "dependencies": {
+    "axios": "^1.9.0",
     "bcrypt": "^6.0.0",
     "dotenv": "^16.5.0",
     "express": "^5.1.0",
