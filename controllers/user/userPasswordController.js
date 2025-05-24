@@ -25,7 +25,7 @@ const userForgotPassword = asyncHandler(async (req, res) => {
       const resetLink = `http://localhost:5001/api/v1/auth/reset-password/${encodeURIComponent(rawToken)}`;
 
       // Get token from header                    
-      const authToken = req.headers.authorization.split(" ")[1];
+      //const authToken = req.headers.authorization.split(" ")[1];
       
       // 5. Send notification through notification service
       await axios.post('http://localhost:5002/notify/email', {
@@ -33,11 +33,11 @@ const userForgotPassword = asyncHandler(async (req, res) => {
         to: user.email,
         subject: 'Password Reset',
         text: `<p>Click <a href="${resetLink}">here</a> to reset your password. The link is valid for 1 hour.</p>`
-      }, {
+      }/*, {
         headers: {
           'Authorization': `Bearer ${authToken}`
         }
-      });
+      }*/ );
       
       res.status(200).json({ message: 'Password reset email sent' });
 
